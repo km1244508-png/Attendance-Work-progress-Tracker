@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+attendance.db
+exports/
+.streamlit/secrets.toml
+.env
