@@ -38,6 +38,17 @@ def inject_global_css():
             color: {TEXT_DARK} !important;
         }}
 
+        /* FIX: st.caption() text was being forced to dark/near-invisible
+           by the rule above in some contexts. Give captions their own
+           reliable muted style with higher specificity so they always
+           render, e.g. task descriptions in Work Progress. */
+        [data-testid="stCaptionContainer"],
+        [data-testid="stCaptionContainer"] p,
+        .stCaption, .stCaption p {{
+            color: {TEXT_MUTED} !important;
+            opacity: 1 !important;
+        }}
+
         /* Tab buttons and titles visible fix */
         button[data-baseweb="tab"] {{
             color: {TEXT_MUTED} !important;
@@ -52,24 +63,35 @@ def inject_global_css():
             font-weight: 800 !important;
         }}
 
-        /* Download buttons (Excel / PDF) full styling */
-        .stDownloadButton button {{
-            background-color: {NAVY} !important;
-            color: #FFFFFF !important;
-            border: 1px solid {NAVY} !important;
+        /* FIX: text/time/number/date inputs, text areas, and selects were
+           rendering with Streamlit's default dark theme (dark box, barely
+           visible text) even though the rest of the app uses a light
+           theme. Force a light, readable style on every input widget. */
+        input, textarea,
+        [data-baseweb="input"], [data-baseweb="textarea"],
+        [data-baseweb="select"], [data-baseweb="base-input"],
+        div[data-testid="stTimeInput"] input,
+        div[data-testid="stDateInput"] input,
+        div[data-testid="stNumberInput"] input,
+        div[data-testid="stTextInput"] input,
+        div[data-testid="stTextArea"] textarea {{
+            background-color: #FFFFFF !important;
+            color: {TEXT_DARK} !important;
+            border: 1px solid #C9D2E0 !important;
             border-radius: 8px !important;
-            padding: 8px 24px !important;
-            font-weight: 700 !important;
-            transition: all 0.2s ease !important;
         }}
-        .stDownloadButton button:hover {{
-            background-color: {BLUE} !important;
-            border-color: {BLUE} !important;
-            color: #FFFFFF !important;
+        /* The wrapping container BaseWeb draws around inputs also needs
+           its background lightened, or the white input floats inside a
+           dark box with mismatched padding. */
+        [data-baseweb="input"] > div,
+        [data-baseweb="textarea"] > div,
+        [data-baseweb="select"] > div {{
+            background-color: #FFFFFF !important;
         }}
-        .stDownloadButton button p, .stDownloadButton button span {{
-            color: #FFFFFF !important;
-            font-weight: 700 !important;
+        /* Placeholder text (e.g. "Press Enter to submit form") */
+        input::placeholder, textarea::placeholder {{
+            color: {TEXT_MUTED} !important;
+            opacity: 1 !important;
         }}
 
         .login-card {{
@@ -128,6 +150,15 @@ def inject_global_css():
             color: white !important;
         }}
 
+        /* Reusable muted-text helper for anything rendered via
+           st.markdown(..., unsafe_allow_html=True) instead of
+           st.caption() — used by task descriptions, notes, etc. */
+        .muted-text {{
+            color: {TEXT_MUTED} !important;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }}
+
         section[data-testid="stSidebar"] {{
             background-color: {NAVY};
         }}
@@ -175,6 +206,13 @@ def render_sidebar_brand(app_name: str, app_icon: str):
 def status_badge(status: str) -> str:
     color = STATUS_COLORS.get(status, "#8A93A3")
     return f'<span class="status-badge" style="background:{color};">{status}</span>'
+
+
+def muted_text(text: str) -> str:
+    """HTML-safe muted caption line — use instead of st.caption() wherever
+    text has previously appeared to not show up (e.g. inside custom
+    st.markdown blocks that also carry unsafe_allow_html=True)."""
+    return f'<div class="muted-text">{text}</div>'
 
 
 def kpi_card(icon: str, label: str, value, color: str = BLUE):
