@@ -9,6 +9,7 @@ import streamlit as st
 import config
 from database.db_setup import init_db, default_admin_notice, default_admin_still_active
 from utils.auth import login, logout, is_logged_in, is_admin
+from utils.cookies import cookies, block_until_ready
 from utils.ui import inject_global_css, hero, section_title, render_sidebar_brand
 
 st.set_page_config(
@@ -18,6 +19,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 inject_global_css()
+
+# The cookie component responds asynchronously — it isn't ready on the
+# very first script run. This shows a brief spinner and reruns itself
+# rather than freezing the page blank.
+block_until_ready()
 
 # Create tables + seed default admin on first run (safe to call every time).
 init_db()
