@@ -13,7 +13,7 @@ import config
 from database.db_setup import get_session
 from database.models import Employee, Attendance
 from utils.auth import require_login, is_admin, current_employee_id
-from utils.calculations import evaluate_attendance
+from utils.calculations import evaluate_attendance, compute_live_elapsed_hours
 from utils.ui import inject_global_css, render_sidebar_brand, hero, section_title, status_badge
 
 st.set_page_config(page_title="Mark Attendance", page_icon="🕒", layout="wide")
@@ -55,10 +55,20 @@ section_title("Today's Record", "📋")
 col1, col2, col3 = st.columns(3)
 col1.metric("Check In", record.check_in.strftime("%H:%M") if record and record.check_in else "—")
 col2.metric("Check Out", record.check_out.strftime("%H:%M") if record and record.check_out else "—")
-col3.metric("Hours Worked", f"{record.hours_worked:.2f}" if record else "0.00")
+
+# Live hours: while checked in but not yet checked out, count up to
+# "now" instead of showing a frozen 0.00 until check-out happens.
+if record and record.check_in and not record.check_out:
+    live_hours = compute_live_elapsed_hours(record.check_in, record.check_out)
+    col3.metric("Hours Worked (live)", f"{live_hours:.2f}")
+else:
+    col3.metric("Hours Worked", f"{record.hours_worked:.2f}" if record else "0.00")
 
 if record:
     st.markdown(status_badge(record.status), unsafe_allow_html=True)
+    if record.check_in and not record.check_out:
+        if st.button("🔄 Refresh live hours"):
+            st.rerun()
 
 st.markdown("---")
 
