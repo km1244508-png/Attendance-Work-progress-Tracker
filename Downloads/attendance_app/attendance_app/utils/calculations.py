@@ -30,9 +30,26 @@ def is_working_day(d: date) -> bool:
 
 
 def compute_hours_worked(check_in: Optional[datetime], check_out: Optional[datetime]) -> float:
+    """Final hours worked — only counted once check-out has happened.
+    Returns 0.0 while a shift is still in progress. For a live/running
+    total while the employee hasn't checked out yet, use
+    compute_live_elapsed_hours() instead."""
     if not check_in or not check_out:
         return 0.0
     delta = check_out - check_in
+    hours = delta.total_seconds() / 3600.0
+    return round(max(hours, 0.0), 2)
+
+
+def compute_live_elapsed_hours(check_in: Optional[datetime], check_out: Optional[datetime]) -> float:
+    """Hours elapsed so far, live. If check_out exists, same as
+    compute_hours_worked(). If the employee has checked in but not
+    checked out yet, this counts up to *now* — use this for a
+    real-time 'hours worked so far' display in the UI."""
+    if not check_in:
+        return 0.0
+    end = check_out or datetime.now()
+    delta = end - check_in
     hours = delta.total_seconds() / 3600.0
     return round(max(hours, 0.0), 2)
 
@@ -53,14 +70,34 @@ def compute_overtime(hours_worked: float) -> float:
     return 0.0
 
 
-def compute_status(hours_worked: float, is_late: bool, has_checkin: bool) -> str:
+def compute_status(check_in: Optional[datetime], check_out: Optional[datetime],
+                    hours_worked: float, is_late: bool) -> str:
     """
-    Present / Late / Half-Day / Absent, in priority order:
-    no check-in -> Absent; below half-day threshold -> Half-Day;
-    late (but full hours) -> Late; otherwise -> Present.
+    Present / Late / Half-Day / Absent.
+
+    FIX: previously this only looked at `hours_worked`, which is always
+    0 while a shift is still in progress (before check-out) — so every
+    employee showed as "Absent" the moment they checked in, even if
+    they were actually on-time or late. Now:
+
+      - no check-in at all              -> Absent
+      - checked in, not checked out yet -> Present or Late (live),
+                                            based on whether they were
+                                            late at check-in
+      - checked out, but total hours
+        below half-day threshold        -> Half-Day
+      - checked out, was late at
+        check-in                        -> Late
+      - checked out, on time            -> Present
     """
-    if not has_checkin or hours_worked <= 0:
+    if not check_in:
         return "Absent"
+
+    if not check_out:
+        # Shift still in progress — reflect lateness immediately,
+        # don't wait for check-out to know the status.
+        return "Late" if is_late else "Present"
+
     if hours_worked < config.HALF_DAY_THRESHOLD_HOURS:
         return "Half-Day"
     if is_late:
@@ -73,7 +110,7 @@ def evaluate_attendance(check_in: Optional[datetime], check_out: Optional[dateti
     hours_worked = compute_hours_worked(check_in, check_out)
     is_late = compute_lateness(check_in, employee)
     overtime = compute_overtime(hours_worked)
-    status = compute_status(hours_worked, is_late, has_checkin=check_in is not None)
+    status = compute_status(check_in, check_out, hours_worked, is_late)
     return {
         "hours_worked": hours_worked,
         "is_late": is_late,
