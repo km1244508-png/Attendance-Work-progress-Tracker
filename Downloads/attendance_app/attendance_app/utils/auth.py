@@ -3,6 +3,11 @@ utils/auth.py
 --------------
 Login, logout, session state, role checks, and password management.
 Passwords are hashed with bcrypt — never stored or compared in plaintext.
+
+Session persistence: on top of st.session_state (fast, in-memory, but
+tab-scoped), the same auth info is mirrored into an encrypted cookie via
+utils/cookies.py. That way switching tabs, refreshing, or reopening the
+app restores the session instead of forcing a re-login every time.
 """
 
 import bcrypt
@@ -11,6 +16,12 @@ import streamlit as st
 import config
 from database.db_setup import get_session
 from database.models import User, Employee
+from utils.cookies import cookies, block_until_ready
+
+_AUTH_KEYS = (
+    "auth_user_id", "auth_username", "auth_role",
+    "auth_employee_id", "auth_employee_name",
+)
 
 
 def _hash_password(plain: str) -> str:
@@ -25,7 +36,7 @@ def _check_password(plain: str, hashed: str) -> bool:
 
 
 def login(username: str, password: str) -> bool:
-    """Validate credentials and populate session state on success."""
+    """Validate credentials and populate session state + persistent cookie on success."""
     if not username or not password:
         return False
 
@@ -44,18 +55,45 @@ def login(username: str, password: str) -> bool:
     st.session_state["auth_role"] = user.role
     st.session_state["auth_employee_id"] = employee.id if employee else None
     st.session_state["auth_employee_name"] = employee.full_name if employee else user.username
+
+    # Mirror into the persistent cookie so other tabs / a refresh /
+    # reopening the browser pick the session back up automatically.
+    cookies["auth_user_id"] = str(user.id)
+    cookies["auth_username"] = user.username
+    cookies["auth_role"] = user.role
+    cookies["auth_employee_id"] = str(employee.id) if employee else ""
+    cookies["auth_employee_name"] = employee.full_name if employee else user.username
+    cookies.save()
+
     return True
 
 
 def logout():
-    for key in (
-        "auth_user_id", "auth_username", "auth_role",
-        "auth_employee_id", "auth_employee_name",
-    ):
+    for key in _AUTH_KEYS:
         st.session_state.pop(key, None)
+        if key in cookies:
+            del cookies[key]
+    cookies.save()
+
+
+def _restore_session_from_cookie():
+    """If session_state is empty (new tab / refresh / new session) but a
+    valid login cookie exists, rehydrate session_state from it."""
+    if "auth_user_id" in st.session_state:
+        return
+    raw_id = cookies.get("auth_user_id")
+    if not raw_id:
+        return
+    st.session_state["auth_user_id"] = int(raw_id)
+    st.session_state["auth_username"] = cookies.get("auth_username")
+    st.session_state["auth_role"] = cookies.get("auth_role")
+    emp_id = cookies.get("auth_employee_id")
+    st.session_state["auth_employee_id"] = int(emp_id) if emp_id else None
+    st.session_state["auth_employee_name"] = cookies.get("auth_employee_name")
 
 
 def is_logged_in() -> bool:
+    _restore_session_from_cookie()
     return "auth_user_id" in st.session_state
 
 
@@ -72,7 +110,10 @@ def current_employee_id():
 
 
 def require_login():
-    """Call at the top of a page to guard it; stops execution if not logged in."""
+    """Call at the top of a page to guard it; stops execution if not logged in.
+    Also waits for the cookie component to be ready — it responds
+    asynchronously, so it isn't available on the very first script run."""
+    block_until_ready()
     if not is_logged_in():
         st.warning("Please log in first.")
         st.stop()
