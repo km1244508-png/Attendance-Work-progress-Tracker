@@ -16,7 +16,7 @@ import streamlit as st
 import config
 from database.db_setup import get_session
 from database.models import User, Employee
-from utils.cookies import cookies, block_until_ready
+from utils.cookies import block_until_ready, read_auth_cookie, write_auth_cookie, clear_auth_cookie
 
 _AUTH_KEYS = (
     "auth_user_id", "auth_username", "auth_role",
@@ -56,14 +56,15 @@ def login(username: str, password: str) -> bool:
     st.session_state["auth_employee_id"] = employee.id if employee else None
     st.session_state["auth_employee_name"] = employee.full_name if employee else user.username
 
-    # Mirror into the persistent cookie so other tabs / a refresh /
+    # Mirror into a persistent cookie so other tabs / a refresh /
     # reopening the browser pick the session back up automatically.
-    cookies["auth_user_id"] = str(user.id)
-    cookies["auth_username"] = user.username
-    cookies["auth_role"] = user.role
-    cookies["auth_employee_id"] = str(employee.id) if employee else ""
-    cookies["auth_employee_name"] = employee.full_name if employee else user.username
-    cookies.save()
+    write_auth_cookie({
+        "auth_user_id": user.id,
+        "auth_username": user.username,
+        "auth_role": user.role,
+        "auth_employee_id": employee.id if employee else None,
+        "auth_employee_name": employee.full_name if employee else user.username,
+    })
 
     return True
 
@@ -71,9 +72,7 @@ def login(username: str, password: str) -> bool:
 def logout():
     for key in _AUTH_KEYS:
         st.session_state.pop(key, None)
-        if key in cookies:
-            del cookies[key]
-    cookies.save()
+    clear_auth_cookie()
 
 
 def _restore_session_from_cookie():
@@ -81,15 +80,14 @@ def _restore_session_from_cookie():
     valid login cookie exists, rehydrate session_state from it."""
     if "auth_user_id" in st.session_state:
         return
-    raw_id = cookies.get("auth_user_id")
-    if not raw_id:
+    data = read_auth_cookie()
+    if not data or not data.get("auth_user_id"):
         return
-    st.session_state["auth_user_id"] = int(raw_id)
-    st.session_state["auth_username"] = cookies.get("auth_username")
-    st.session_state["auth_role"] = cookies.get("auth_role")
-    emp_id = cookies.get("auth_employee_id")
-    st.session_state["auth_employee_id"] = int(emp_id) if emp_id else None
-    st.session_state["auth_employee_name"] = cookies.get("auth_employee_name")
+    st.session_state["auth_user_id"] = data.get("auth_user_id")
+    st.session_state["auth_username"] = data.get("auth_username")
+    st.session_state["auth_role"] = data.get("auth_role")
+    st.session_state["auth_employee_id"] = data.get("auth_employee_id")
+    st.session_state["auth_employee_name"] = data.get("auth_employee_name")
 
 
 def is_logged_in() -> bool:
