@@ -9,7 +9,7 @@ import streamlit as st
 import config
 from database.db_setup import init_db, default_admin_notice, default_admin_still_active
 from utils.auth import login, logout, is_logged_in, is_admin
-from utils.cookies import cookies, block_until_ready
+from utils.cookies import block_until_ready
 from utils.ui import inject_global_css, hero, section_title, render_sidebar_brand
 
 st.set_page_config(
