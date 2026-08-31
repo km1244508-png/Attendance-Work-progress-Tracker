@@ -1,14 +1,14 @@
 """
 app.py
 ------
-Login screen and landing page — entry point of the app.
+Login / Sign-Up screen and landing page — entry point of the app.
 """
 
 import streamlit as st
 
 import config
 from database.db_setup import init_db, default_admin_notice, default_admin_still_active
-from utils.auth import login, logout, is_logged_in, is_admin
+from utils.auth import login, logout, is_logged_in, is_admin, create_user_and_employee
 from utils.cookies import block_until_ready
 from utils.ui import inject_global_css, hero, section_title, render_sidebar_brand
 
@@ -48,19 +48,57 @@ def render_login():
             unsafe_allow_html=True,
         )
 
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
-        with st.form("login_form", clear_on_submit=False):
-            username = st.text_input("Username", placeholder="e.g. admin")
-            password = st.text_input("Password", type="password", placeholder="••••••••")
-            submitted = st.form_submit_button("Log In →", type="primary", use_container_width=True)
+        # NOTE: previously a standalone st.markdown('<div class="login-card">')
+        # was opened here and closed after the form — but that div never
+        # actually wraps the form (Streamlit renders the form as a separate
+        # sibling element), so it showed up as an empty white box floating
+        # above the real form. Using a real st.container(border=True)
+        # instead gives one properly bordered box with the form inside it.
+        with st.container(border=True):
+            tab_login, tab_signup = st.tabs(["Log In", "Sign Up"])
 
-        if submitted:
-            if login(username, password):
-                st.success("Login successful.")
-                st.rerun()
-            else:
-                st.error("Invalid username or password.")
-        st.markdown("</div>", unsafe_allow_html=True)
+            with tab_login:
+                with st.form("login_form", clear_on_submit=False):
+                    username = st.text_input("Username", placeholder="e.g. admin")
+                    password = st.text_input("Password", type="password", placeholder="••••••••")
+                    submitted = st.form_submit_button("Log In →", type="primary", use_container_width=True)
+
+                if submitted:
+                    if login(username, password):
+                        st.success("Login successful.")
+                        st.rerun()
+                    else:
+                        st.error("Invalid username or password.")
+
+            with tab_signup:
+                with st.form("signup_form", clear_on_submit=False):
+                    full_name = st.text_input("Full Name", placeholder="e.g. Ali Raza")
+                    new_username = st.text_input("Choose a Username", placeholder="e.g. ali.raza")
+                    new_password = st.text_input("Choose a Password", type="password", placeholder="At least 6 characters")
+                    confirm_password = st.text_input("Confirm Password", type="password", placeholder="••••••••")
+                    email = st.text_input("Email (optional)", placeholder="you@example.com")
+                    signed_up = st.form_submit_button("Sign Up →", type="primary", use_container_width=True)
+
+                if signed_up:
+                    if not full_name or not new_username or not new_password:
+                        st.error("Full name, username, and password are required.")
+                    elif new_password != confirm_password:
+                        st.error("Passwords do not match.")
+                    else:
+                        # Self-registration always creates a regular Employee
+                        # account — Admin role is granted separately by an
+                        # existing admin from Employee Management.
+                        ok, msg = create_user_and_employee(
+                            username=new_username,
+                            password=new_password,
+                            full_name=full_name,
+                            role=config.ROLE_EMPLOYEE,
+                            email=email,
+                        )
+                        if ok:
+                            st.success("Account created! You can now log in from the Log In tab.")
+                        else:
+                            st.error(msg)
 
         st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
         if default_admin_still_active():
