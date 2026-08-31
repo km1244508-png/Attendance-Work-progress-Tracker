@@ -89,6 +89,17 @@ def inject_global_css():
             background-color: #FFFFFF !important;
         }}
 
+        /* FIX: color-scheme was inherited as "dark" from Streamlit's base
+           theme, which makes the BROWSER itself paint native form widgets
+           (date/time pickers, their clock/calendar icons, spin arrows)
+           with dark chrome — no CSS background/color override can beat
+           that, only color-scheme can. This was the real reason the date
+           and time boxes stayed black no matter what background-color we
+           set. Forcing light here fixes the native chrome everywhere. */
+        html, body, .stApp {{
+            color-scheme: light !important;
+        }}
+
         /* FIX: st.date_input doesn't render as a plain <input> — it's a
            BaseWeb "datepicker" made of separate year/month/day spin
            fields inside nested divs, none of which matched the rules
@@ -110,10 +121,13 @@ def inject_global_css():
         /* FIX: st.time_input has the exact same BaseWeb structure problem
            as st.date_input above — it's not a plain <input>, so it was
            still rendering as a solid black box (seen on the Manual Time
-           Entry check-in/check-out fields). Same broad fix. */
+           Entry check-in/check-out fields). Same broad fix, plus the
+           color-scheme fix above for the native picker chrome. */
+        div[data-testid="stTimeInput"],
         div[data-testid="stTimeInput"] > div,
         div[data-testid="stTimeInput"] div,
-        div[data-testid="stTimeInput"] [data-baseweb] {{
+        div[data-testid="stTimeInput"] [data-baseweb],
+        div[data-testid="stTimeInput"] input {{
             background-color: #FFFFFF !important;
             color: {TEXT_DARK} !important;
         }}
@@ -125,12 +139,18 @@ def inject_global_css():
         /* FIX: st.button / st.download_button / st.form_submit_button were
            rendering with Streamlit's dark default (black background, low-
            contrast text) — "Deactivate", "Download Excel", "Download PDF"
-           etc. were unreadable black squares. Force a light, bordered
-           style for ordinary buttons, and a solid accent-color fill (with
-           guaranteed white text) for primary buttons. */
+           etc. were unreadable black squares. The first attempt at this
+           only targeted the wrapping <div data-testid="stButton">, but
+           this Streamlit version puts the testid on the <button> itself
+           (data-testid="stBaseButton-secondary/primary"), so that rule
+           never matched. Covering both patterns here, plus the plain
+           kind="..." attribute, so this works regardless of version. */
         div[data-testid="stButton"] button,
         div[data-testid="stDownloadButton"] button,
-        div[data-testid="stFormSubmitButton"] button {{
+        div[data-testid="stFormSubmitButton"] button,
+        button[kind="secondary"],
+        button[data-testid="stBaseButton-secondary"],
+        button[data-testid="stBaseButton-secondaryFormSubmit"] {{
             background-color: #FFFFFF !important;
             color: {NAVY} !important;
             border: 1.5px solid {NAVY} !important;
@@ -139,30 +159,40 @@ def inject_global_css():
         }}
         div[data-testid="stButton"] button *,
         div[data-testid="stDownloadButton"] button *,
-        div[data-testid="stFormSubmitButton"] button * {{
+        div[data-testid="stFormSubmitButton"] button *,
+        button[kind="secondary"] *,
+        button[data-testid="stBaseButton-secondary"] *,
+        button[data-testid="stBaseButton-secondaryFormSubmit"] * {{
             color: inherit !important;
         }}
         div[data-testid="stButton"] button:hover,
         div[data-testid="stDownloadButton"] button:hover,
-        div[data-testid="stFormSubmitButton"] button:hover {{
+        div[data-testid="stFormSubmitButton"] button:hover,
+        button[kind="secondary"]:hover,
+        button[data-testid="stBaseButton-secondary"]:hover,
+        button[data-testid="stBaseButton-secondaryFormSubmit"]:hover {{
             background-color: {LIGHT_BG} !important;
             border-color: {BLUE} !important;
         }}
         div[data-testid="stButton"] button[kind="primary"],
         div[data-testid="stDownloadButton"] button[kind="primary"],
-        div[data-testid="stFormSubmitButton"] button[kind="primary"] {{
+        div[data-testid="stFormSubmitButton"] button[kind="primary"],
+        button[kind="primary"],
+        button[data-testid="stBaseButton-primary"],
+        button[data-testid="stBaseButton-primaryFormSubmit"] {{
             background-color: {BLUE} !important;
-            border-color: {BLUE} !important;
+            border: 1.5px solid {BLUE} !important;
             color: #FFFFFF !important;
         }}
         div[data-testid="stButton"] button[kind="primary"] *,
         div[data-testid="stDownloadButton"] button[kind="primary"] *,
-        div[data-testid="stFormSubmitButton"] button[kind="primary"] * {{
+        div[data-testid="stFormSubmitButton"] button[kind="primary"] *,
+        button[kind="primary"] *,
+        button[data-testid="stBaseButton-primary"] *,
+        button[data-testid="stBaseButton-primaryFormSubmit"] * {{
             color: #FFFFFF !important;
         }}
-        div[data-testid="stButton"] button:disabled,
-        div[data-testid="stDownloadButton"] button:disabled,
-        div[data-testid="stFormSubmitButton"] button:disabled {{
+        button:disabled, button:disabled * {{
             background-color: #EDEFF3 !important;
             color: #A6AEBB !important;
             border-color: #D8DEE8 !important;
