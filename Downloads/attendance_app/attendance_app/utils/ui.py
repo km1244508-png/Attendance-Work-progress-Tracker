@@ -88,6 +88,86 @@ def inject_global_css():
         [data-baseweb="select"] > div {{
             background-color: #FFFFFF !important;
         }}
+
+        /* FIX: st.date_input doesn't render as a plain <input> — it's a
+           BaseWeb "datepicker" made of separate year/month/day spin
+           fields inside nested divs, none of which matched the rules
+           above. That left the date box solid black with barely-visible
+           text (as seen on Mark Attendance). Force every layer of it
+           light, not just the outermost wrapper. */
+        div[data-testid="stDateInput"] > div,
+        div[data-testid="stDateInput"] div,
+        div[data-testid="stDateInput"] [data-baseweb="datepicker"],
+        div[data-testid="stDateInput"] [role="spinbutton"] {{
+            background-color: #FFFFFF !important;
+            color: {TEXT_DARK} !important;
+        }}
+        div[data-testid="stDateInput"] > div {{
+            border: 1px solid #C9D2E0 !important;
+            border-radius: 8px !important;
+        }}
+
+        /* FIX: st.time_input has the exact same BaseWeb structure problem
+           as st.date_input above — it's not a plain <input>, so it was
+           still rendering as a solid black box (seen on the Manual Time
+           Entry check-in/check-out fields). Same broad fix. */
+        div[data-testid="stTimeInput"] > div,
+        div[data-testid="stTimeInput"] div,
+        div[data-testid="stTimeInput"] [data-baseweb] {{
+            background-color: #FFFFFF !important;
+            color: {TEXT_DARK} !important;
+        }}
+        div[data-testid="stTimeInput"] > div {{
+            border: 1px solid #C9D2E0 !important;
+            border-radius: 8px !important;
+        }}
+
+        /* FIX: st.button / st.download_button / st.form_submit_button were
+           rendering with Streamlit's dark default (black background, low-
+           contrast text) — "Deactivate", "Download Excel", "Download PDF"
+           etc. were unreadable black squares. Force a light, bordered
+           style for ordinary buttons, and a solid accent-color fill (with
+           guaranteed white text) for primary buttons. */
+        div[data-testid="stButton"] button,
+        div[data-testid="stDownloadButton"] button,
+        div[data-testid="stFormSubmitButton"] button {{
+            background-color: #FFFFFF !important;
+            color: {NAVY} !important;
+            border: 1.5px solid {NAVY} !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+        }}
+        div[data-testid="stButton"] button *,
+        div[data-testid="stDownloadButton"] button *,
+        div[data-testid="stFormSubmitButton"] button * {{
+            color: inherit !important;
+        }}
+        div[data-testid="stButton"] button:hover,
+        div[data-testid="stDownloadButton"] button:hover,
+        div[data-testid="stFormSubmitButton"] button:hover {{
+            background-color: {LIGHT_BG} !important;
+            border-color: {BLUE} !important;
+        }}
+        div[data-testid="stButton"] button[kind="primary"],
+        div[data-testid="stDownloadButton"] button[kind="primary"],
+        div[data-testid="stFormSubmitButton"] button[kind="primary"] {{
+            background-color: {BLUE} !important;
+            border-color: {BLUE} !important;
+            color: #FFFFFF !important;
+        }}
+        div[data-testid="stButton"] button[kind="primary"] *,
+        div[data-testid="stDownloadButton"] button[kind="primary"] *,
+        div[data-testid="stFormSubmitButton"] button[kind="primary"] * {{
+            color: #FFFFFF !important;
+        }}
+        div[data-testid="stButton"] button:disabled,
+        div[data-testid="stDownloadButton"] button:disabled,
+        div[data-testid="stFormSubmitButton"] button:disabled {{
+            background-color: #EDEFF3 !important;
+            color: #A6AEBB !important;
+            border-color: #D8DEE8 !important;
+        }}
+
         /* Placeholder text (e.g. "Press Enter to submit form") */
         input::placeholder, textarea::placeholder {{
             color: {TEXT_MUTED} !important;
