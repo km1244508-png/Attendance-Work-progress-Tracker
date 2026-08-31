@@ -9,10 +9,17 @@ constants here so branding can be changed from one place.
 import streamlit as st
 
 NAVY = "#1F3864"
+NAVY_DARK = "#152747"
 BLUE = "#2E74B5"
 LIGHT_BG = "#F5F7FA"
 TEXT_MUTED = "#66707F"
 TEXT_DARK = "#1A1F2B"
+BORDER = "#E7EBF1"
+
+# A small curated accent palette used to give repeating card grids
+# (Quick Navigation, KPI rows, etc.) visual variety without breaking
+# the overall navy/blue brand identity.
+ACCENT_PALETTE = ["#2E74B5", "#5B5FC7", "#0E9F6E", "#D97706", "#DB2777", "#0EA5A5"]
 
 STATUS_COLORS = {
     "Present": "#1E8E5A",
@@ -30,8 +37,44 @@ def inject_global_css():
     st.markdown(
         f"""
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        html, body, .stApp, [class*="css"] {{
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        }}
+
         .stApp {{ background-color: {LIGHT_BG}; }}
-        #MainMenu, footer {{ visibility: hidden; }}
+        #MainMenu, footer, header[data-testid="stHeader"] {{ visibility: hidden; }}
+
+        .block-container {{
+            padding-top: 2.2rem !important;
+            padding-bottom: 3rem !important;
+            max-width: 1200px;
+        }}
+
+        /* ---------------------------------------------------------------
+           Equal-height card rows: whenever cards are laid out with
+           st.columns(), stretch every column to the tallest one in that
+           row so cards with shorter text don't end up visually shorter.
+        --------------------------------------------------------------- */
+        div[data-testid="stHorizontalBlock"] {{
+            align-items: stretch !important;
+            gap: 4px;
+        }}
+        div[data-testid="column"] {{
+            display: flex !important;
+        }}
+        div[data-testid="column"] > div {{
+            width: 100%;
+            display: flex;
+        }}
+        div[data-testid="column"] div[data-testid="stVerticalBlock"] {{
+            width: 100%;
+            height: 100%;
+        }}
+        div[data-testid="column"] div[data-testid="stVerticalBlockBorderWrapper"] {{
+            height: 100%;
+        }}
 
         /* Main area text color fix */
         .stApp, .stMarkdown, p, span, label {{
@@ -204,51 +247,117 @@ def inject_global_css():
             opacity: 1 !important;
         }}
 
-        .login-card {{
+        /* Generic "card" look for bordered containers, e.g.
+           st.container(border=True) on the login screen. */
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(> div > div[data-testid="stVerticalBlock"]) {{
+            border-radius: 14px !important;
+        }}
+        [data-testid="stForm"] {{
+            border: none !important;
+            padding: 0 !important;
+            background: transparent !important;
+        }}
+        .login-card,
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
             background: white;
-            padding: 28px 32px;
-            border-radius: 14px;
+            border-radius: 14px !important;
             box-shadow: 0 4px 24px rgba(31,56,100,0.08);
-            border: 1px solid #E7EBF1;
+            border: 1px solid {BORDER} !important;
         }}
 
         .hero-banner {{
             background: linear-gradient(135deg, {NAVY} 0%, {BLUE} 100%);
             color: white;
-            padding: 28px 32px;
-            border-radius: 14px;
-            margin-bottom: 22px;
+            padding: 30px 34px;
+            border-radius: 16px;
+            margin-bottom: 26px;
+            box-shadow: 0 8px 28px rgba(31,56,100,0.18);
+            position: relative;
+            overflow: hidden;
+        }}
+        .hero-banner::after {{
+            content: "";
+            position: absolute;
+            top: -60%; right: -8%;
+            width: 260px; height: 260px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
         }}
         .hero-banner h1 {{
             color: white !important;
-            font-size: 1.6rem;
+            font-size: 1.65rem;
             margin: 0 0 6px 0;
             font-weight: 800;
+            position: relative;
         }}
         .hero-banner p {{
             color: white !important;
             margin: 0;
-            opacity: 0.92;
+            opacity: 0.9;
             font-size: 0.98rem;
+            position: relative;
         }}
 
+        /* ---------------------------------------------------------------
+           Cards (Quick Navigation tiles, KPI stat cards). Flex column so
+           the description can grow to fill leftover space, which keeps
+           every card in a row the same footprint regardless of how much
+           text it holds — combined with the equal-height row rules above.
+        --------------------------------------------------------------- */
         .kpi-card {{
             background: white;
-            border-radius: 12px;
-            padding: 18px 16px;
-            border: 1px solid #E7EBF1;
+            border-radius: 14px;
+            padding: 20px 18px;
+            border: 1px solid {BORDER};
             border-top: 3px solid var(--kpi-color, {BLUE});
             box-shadow: 0 2px 10px rgba(31,56,100,0.05);
-            transition: transform 0.15s ease;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            box-sizing: border-box;
         }}
-        .kpi-card:hover {{ transform: translateY(-2px); }}
-        .kpi-icon {{ font-size: 1.6rem; margin-bottom: 6px; }}
+        .kpi-card:hover {{
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(31,56,100,0.12);
+        }}
+        .kpi-icon {{
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            background: color-mix(in srgb, var(--kpi-color, {BLUE}) 14%, white);
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }}
+        .kpi-title {{
+            font-weight: 700;
+            color: {TEXT_DARK};
+            font-size: 1.02rem;
+            margin-bottom: 4px;
+        }}
+        .kpi-value {{
+            font-weight: 700;
+            color: {TEXT_DARK};
+            font-size: 1.4rem;
+        }}
+        .kpi-desc {{
+            color: {TEXT_MUTED};
+            font-size: 0.85rem;
+            line-height: 1.45;
+            flex-grow: 1;
+        }}
 
         .section-title {{
             font-weight: 800;
             color: {NAVY} !important;
             font-size: 1.15rem;
-            margin: 18px 0 10px 0;
+            margin: 22px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid {BORDER};
         }}
 
         .status-badge {{
@@ -269,11 +378,103 @@ def inject_global_css():
             line-height: 1.4;
         }}
 
+        /* -----------------------------------------------------------
+           Sidebar: brand header + built-in multipage navigation +
+           user/logout footer, restyled to look like one cohesive
+           product nav rather than default Streamlit chrome.
+        ----------------------------------------------------------- */
         section[data-testid="stSidebar"] {{
-            background-color: {NAVY};
+            background: linear-gradient(180deg, {NAVY} 0%, {NAVY_DARK} 100%);
+            border-right: none;
         }}
-        section[data-testid="stSidebar"] * {{ 
-            color: #EAF0FA !important; 
+        section[data-testid="stSidebar"] * {{
+            color: #EAF0FA !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {{
+            padding-top: 4px;
+        }}
+
+        [data-testid="stSidebarNav"] {{
+            padding: 6px 12px 10px 12px !important;
+        }}
+        [data-testid="stSidebarNav"] ul {{
+            padding: 0 !important;
+        }}
+        [data-testid="stSidebarNav"] li {{
+            margin-bottom: 3px;
+        }}
+        [data-testid="stSidebarNav"] a {{
+            border-radius: 9px !important;
+            padding: 10px 14px !important;
+            font-weight: 500 !important;
+            font-size: 0.92rem !important;
+            transition: background 0.15s ease;
+        }}
+        [data-testid="stSidebarNav"] a:hover {{
+            background: rgba(255,255,255,0.08) !important;
+        }}
+        [data-testid="stSidebarNav"] a[aria-current="page"] {{
+            background: rgba(255,255,255,0.14) !important;
+            font-weight: 700 !important;
+            box-shadow: inset 3px 0 0 #6FA8DC;
+        }}
+
+        .sidebar-brand {{
+            text-align: center;
+            padding: 14px 10px 16px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            margin-bottom: 8px;
+        }}
+        .sidebar-brand .brand-icon {{ font-size: 1.9rem; }}
+        .sidebar-brand .brand-name {{
+            font-weight: 800;
+            font-size: 0.98rem;
+            line-height: 1.3;
+            margin-top: 2px;
+        }}
+
+        .sidebar-user {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 6px;
+            margin-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.12);
+        }}
+        .sidebar-user .avatar {{
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.14);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }}
+        .sidebar-user .who {{ line-height: 1.3; overflow: hidden; }}
+        .sidebar-user .who .name {{
+            font-weight: 700;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }}
+        .sidebar-user .who .role {{
+            font-size: 0.72rem;
+            opacity: 0.75;
+        }}
+        section[data-testid="stSidebar"] div[data-testid="stButton"] button {{
+            background: rgba(255,255,255,0.06) !important;
+            border: 1px solid rgba(255,255,255,0.18) !important;
+            color: #EAF0FA !important;
+            font-size: 0.82rem !important;
+            padding: 4px 0 !important;
+        }}
+        section[data-testid="stSidebar"] div[data-testid="stButton"] button:hover {{
+            background: rgba(255,255,255,0.14) !important;
+            border-color: rgba(255,255,255,0.32) !important;
         }}
         </style>
         """,
@@ -304,13 +505,42 @@ def render_sidebar_brand(app_name: str, app_icon: str):
     with st.sidebar:
         st.markdown(
             f"""
-            <div style="text-align:center;padding:10px 0 18px 0;">
-                <div style="font-size:2rem;">{app_icon}</div>
-                <div style="font-weight:800;font-size:1.0rem;line-height:1.3;">{app_name}</div>
+            <div class="sidebar-brand">
+                <div class="brand-icon">{app_icon}</div>
+                <div class="brand-name">{app_name}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+        _render_sidebar_user_footer()
+
+
+def _render_sidebar_user_footer():
+    """Signed-in-as strip + working logout button, shown at the bottom of
+    every page's sidebar. Kept optional/defensive: if nothing is logged
+    in yet (e.g. rendered from the login screen) it simply does nothing."""
+    username = st.session_state.get("auth_username")
+    role = st.session_state.get("auth_role")
+    if not username:
+        return
+
+    initials = "".join(part[0] for part in username.split()[:2]).upper() or "U"
+    st.markdown(
+        f"""
+        <div class="sidebar-user">
+            <div class="avatar">{initials}</div>
+            <div class="who">
+                <div class="name">{username}</div>
+                <div class="role">{role or ""}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("Log out", key="sidebar_logout_btn", use_container_width=True):
+        from utils.auth import logout
+        logout()
+        st.rerun()
 
 
 def status_badge(status: str) -> str:
@@ -330,8 +560,8 @@ def kpi_card(icon: str, label: str, value, color: str = BLUE):
         f"""
         <div class="kpi-card" style="--kpi-color:{color};">
             <div class="kpi-icon">{icon}</div>
-            <div style="font-weight:700;color:{TEXT_DARK};font-size:1.4rem;">{value}</div>
-            <div style="color:{TEXT_MUTED};font-size:0.85rem;">{label}</div>
+            <div class="kpi-value">{value}</div>
+            <div class="kpi-desc">{label}</div>
         </div>
         """,
         unsafe_allow_html=True,
