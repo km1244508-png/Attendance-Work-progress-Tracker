@@ -4,32 +4,57 @@ utils/ui.py
 Shared design system: global CSS, KPI cards, hero banners, section
 titles, sidebar branding, and status badges. Keep all color/style
 constants here so branding can be changed from one place.
+
+Visual language: deep-slate "premium SaaS" dark theme (Deel / Linear /
+Stripe style) — slate-900 canvas, slate-800 surfaces, ultra-subtle
+borders, soft ambient shadows, Inter type, and a small semantic accent
+set (indigo = primary/brand, emerald = active/positive, amber = pending,
+rose = negative).
 """
 
 import streamlit as st
 
-NAVY = "#1F3864"
-NAVY_DARK = "#152747"
-BLUE = "#2E74B5"
-LIGHT_BG = "#F5F7FA"
-TEXT_MUTED = "#66707F"
-TEXT_DARK = "#1A1F2B"
-BORDER = "#E7EBF1"
+# ---------------------------------------------------------------------------
+# Palette — deep slate dark theme
+# ---------------------------------------------------------------------------
+BG = "#0B1220"           # app canvas (near slate-950)
+SURFACE = "#141B2D"      # cards, containers (slate-900/800 blend)
+SURFACE_2 = "#1B2436"    # slightly raised surface (hover, sidebar footer)
+BORDER = "rgba(255,255,255,0.08)"
+BORDER_STRONG = "rgba(255,255,255,0.14)"
+
+TEXT_PRIMARY = "#F1F5F9"   # slate-100
+TEXT_MUTED = "#94A3B8"     # slate-400
+TEXT_FAINT = "#64748B"     # slate-500
+
+PRIMARY = "#6366F1"        # indigo-500 — brand / primary actions
+PRIMARY_HOVER = "#7C7FF2"
+EMERALD = "#10B981"        # active / positive
+AMBER = "#F59E0B"          # pending / warning
+ROSE = "#F43F5E"           # negative / absent
+
+# Kept for backward-compat imports elsewhere in the codebase.
+NAVY = SURFACE
+NAVY_DARK = BG
+BLUE = PRIMARY
+LIGHT_BG = BG
+TEXT_DARK = TEXT_PRIMARY
 
 # A small curated accent palette used to give repeating card grids
 # (Quick Navigation, KPI rows, etc.) visual variety without breaking
-# the overall navy/blue brand identity.
-ACCENT_PALETTE = ["#2E74B5", "#5B5FC7", "#0E9F6E", "#D97706", "#DB2777", "#0EA5A5"]
+# the overall dark/indigo brand identity. Chosen to stay legible on a
+# dark surface.
+ACCENT_PALETTE = ["#6366F1", "#10B981", "#38BDF8", "#F59E0B", "#F472B6", "#2DD4BF"]
 
 STATUS_COLORS = {
-    "Present": "#1E8E5A",
-    "Late": "#C77700",
-    "Half-Day": "#B8860B",
-    "Absent": "#C0392B",
-    "Not Started": "#8A93A3",
-    "In Progress": "#2E74B5",
-    "Completed": "#1E8E5A",
-    "On Hold": "#C77700",
+    "Present": EMERALD,
+    "Late": AMBER,
+    "Half-Day": "#FB923C",
+    "Absent": ROSE,
+    "Not Started": TEXT_FAINT,
+    "In Progress": "#38BDF8",
+    "Completed": EMERALD,
+    "On Hold": AMBER,
 }
 
 
@@ -43,23 +68,35 @@ def inject_global_css():
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         }}
 
-        .stApp {{ background-color: {LIGHT_BG}; }}
+        html, body, .stApp {{
+            color-scheme: dark !important;
+        }}
+
+        .stApp {{ background-color: {BG}; }}
         #MainMenu, footer, header[data-testid="stHeader"] {{ visibility: hidden; }}
 
         .block-container {{
             padding-top: 2.2rem !important;
             padding-bottom: 3rem !important;
-            max-width: 1200px;
+            max-width: 1220px;
         }}
+
+        /* Slim, unobtrusive dark scrollbars — small polish detail that
+           matches the rest of the premium-dark aesthetic. */
+        ::-webkit-scrollbar {{ width: 10px; height: 10px; }}
+        ::-webkit-scrollbar-track {{ background: transparent; }}
+        ::-webkit-scrollbar-thumb {{ background: #334155; border-radius: 8px; }}
+        ::-webkit-scrollbar-thumb:hover {{ background: #475569; }}
 
         /* ---------------------------------------------------------------
            Equal-height card rows: whenever cards are laid out with
            st.columns(), stretch every column to the tallest one in that
            row so cards with shorter text don't end up visually shorter.
+           This is what keeps every "tracking box" the same size.
         --------------------------------------------------------------- */
         div[data-testid="stHorizontalBlock"] {{
             align-items: stretch !important;
-            gap: 4px;
+            gap: 16px;
         }}
         div[data-testid="column"] {{
             display: flex !important;
@@ -76,15 +113,15 @@ def inject_global_css():
             height: 100%;
         }}
 
-        /* Main area text color fix */
-        .stApp, .stMarkdown, p, span, label {{
-            color: {TEXT_DARK} !important;
+        /* Base text colors */
+        .stApp, .stMarkdown, p, span, label, li {{
+            color: {TEXT_PRIMARY} !important;
+        }}
+        h1, h2, h3, h4, h5, h6 {{
+            color: {TEXT_PRIMARY} !important;
+            letter-spacing: -0.01em;
         }}
 
-        /* FIX: st.caption() text was being forced to dark/near-invisible
-           by the rule above in some contexts. Give captions their own
-           reliable muted style with higher specificity so they always
-           render, e.g. task descriptions in Work Progress. */
         [data-testid="stCaptionContainer"],
         [data-testid="stCaptionContainer"] p,
         .stCaption, .stCaption p {{
@@ -92,24 +129,29 @@ def inject_global_css():
             opacity: 1 !important;
         }}
 
-        /* Tab buttons and titles visible fix */
+        /* Tabs */
         button[data-baseweb="tab"] {{
             color: {TEXT_MUTED} !important;
         }}
         button[data-baseweb="tab"] p {{
             color: {TEXT_MUTED} !important;
-            font-size: 15px !important;
+            font-size: 14.5px !important;
             font-weight: 600 !important;
         }}
         button[data-baseweb="tab"][aria-selected="true"] p {{
-            color: {NAVY} !important;
-            font-weight: 800 !important;
+            color: {TEXT_PRIMARY} !important;
+            font-weight: 700 !important;
+        }}
+        div[data-baseweb="tab-highlight"] {{
+            background-color: {PRIMARY} !important;
+        }}
+        div[data-baseweb="tab-border"] {{
+            background-color: {BORDER} !important;
         }}
 
-        /* FIX: text/time/number/date inputs, text areas, and selects were
-           rendering with Streamlit's default dark theme (dark box, barely
-           visible text) even though the rest of the app uses a light
-           theme. Force a light, readable style on every input widget. */
+        /* -----------------------------------------------------------
+           Form inputs — dark surface, subtle border, indigo focus ring.
+        ----------------------------------------------------------- */
         input, textarea,
         [data-baseweb="input"], [data-baseweb="textarea"],
         [data-baseweb="select"], [data-baseweb="base-input"],
@@ -118,87 +160,72 @@ def inject_global_css():
         div[data-testid="stNumberInput"] input,
         div[data-testid="stTextInput"] input,
         div[data-testid="stTextArea"] textarea {{
-            background-color: #FFFFFF !important;
-            color: {TEXT_DARK} !important;
-            border: 1px solid #C9D2E0 !important;
-            border-radius: 8px !important;
+            background-color: {SURFACE_2} !important;
+            color: {TEXT_PRIMARY} !important;
+            border: 1px solid {BORDER_STRONG} !important;
+            border-radius: 10px !important;
         }}
-        /* The wrapping container BaseWeb draws around inputs also needs
-           its background lightened, or the white input floats inside a
-           dark box with mismatched padding. */
         [data-baseweb="input"] > div,
         [data-baseweb="textarea"] > div,
         [data-baseweb="select"] > div {{
-            background-color: #FFFFFF !important;
+            background-color: {SURFACE_2} !important;
+        }}
+        input:focus, textarea:focus, [data-baseweb="select"]:focus-within {{
+            border-color: {PRIMARY} !important;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.25) !important;
         }}
 
-        /* FIX: color-scheme was inherited as "dark" from Streamlit's base
-           theme, which makes the BROWSER itself paint native form widgets
-           (date/time pickers, their clock/calendar icons, spin arrows)
-           with dark chrome — no CSS background/color override can beat
-           that, only color-scheme can. This was the real reason the date
-           and time boxes stayed black no matter what background-color we
-           set. Forcing light here fixes the native chrome everywhere. */
-        html, body, .stApp {{
-            color-scheme: light !important;
-        }}
-
-        /* FIX: st.date_input doesn't render as a plain <input> — it's a
-           BaseWeb "datepicker" made of separate year/month/day spin
-           fields inside nested divs, none of which matched the rules
-           above. That left the date box solid black with barely-visible
-           text (as seen on Mark Attendance). Force every layer of it
-           light, not just the outermost wrapper. */
         div[data-testid="stDateInput"] > div,
         div[data-testid="stDateInput"] div,
         div[data-testid="stDateInput"] [data-baseweb="datepicker"],
         div[data-testid="stDateInput"] [role="spinbutton"] {{
-            background-color: #FFFFFF !important;
-            color: {TEXT_DARK} !important;
+            background-color: {SURFACE_2} !important;
+            color: {TEXT_PRIMARY} !important;
         }}
         div[data-testid="stDateInput"] > div {{
-            border: 1px solid #C9D2E0 !important;
-            border-radius: 8px !important;
+            border: 1px solid {BORDER_STRONG} !important;
+            border-radius: 10px !important;
         }}
 
-        /* FIX: st.time_input has the exact same BaseWeb structure problem
-           as st.date_input above — it's not a plain <input>, so it was
-           still rendering as a solid black box (seen on the Manual Time
-           Entry check-in/check-out fields). Same broad fix, plus the
-           color-scheme fix above for the native picker chrome. */
         div[data-testid="stTimeInput"],
         div[data-testid="stTimeInput"] > div,
         div[data-testid="stTimeInput"] div,
         div[data-testid="stTimeInput"] [data-baseweb],
         div[data-testid="stTimeInput"] input {{
-            background-color: #FFFFFF !important;
-            color: {TEXT_DARK} !important;
+            background-color: {SURFACE_2} !important;
+            color: {TEXT_PRIMARY} !important;
         }}
         div[data-testid="stTimeInput"] > div {{
-            border: 1px solid #C9D2E0 !important;
-            border-radius: 8px !important;
+            border: 1px solid {BORDER_STRONG} !important;
+            border-radius: 10px !important;
         }}
 
-        /* FIX: st.button / st.download_button / st.form_submit_button were
-           rendering with Streamlit's dark default (black background, low-
-           contrast text) — "Deactivate", "Download Excel", "Download PDF"
-           etc. were unreadable black squares. The first attempt at this
-           only targeted the wrapping <div data-testid="stButton">, but
-           this Streamlit version puts the testid on the <button> itself
-           (data-testid="stBaseButton-secondary/primary"), so that rule
-           never matched. Covering both patterns here, plus the plain
-           kind="..." attribute, so this works regardless of version. */
+        /* Dropdown/select popover menus */
+        ul[data-baseweb="menu"], div[data-baseweb="popover"] {{
+            background-color: {SURFACE_2} !important;
+        }}
+        li[data-baseweb="menu-item"] {{
+            color: {TEXT_PRIMARY} !important;
+        }}
+        li[data-baseweb="menu-item"]:hover {{
+            background-color: rgba(99,102,241,0.15) !important;
+        }}
+
+        /* -----------------------------------------------------------
+           Buttons
+        ----------------------------------------------------------- */
         div[data-testid="stButton"] button,
         div[data-testid="stDownloadButton"] button,
         div[data-testid="stFormSubmitButton"] button,
         button[kind="secondary"],
         button[data-testid="stBaseButton-secondary"],
         button[data-testid="stBaseButton-secondaryFormSubmit"] {{
-            background-color: #FFFFFF !important;
-            color: {NAVY} !important;
-            border: 1.5px solid {NAVY} !important;
-            border-radius: 8px !important;
+            background-color: {SURFACE_2} !important;
+            color: {TEXT_PRIMARY} !important;
+            border: 1px solid {BORDER_STRONG} !important;
+            border-radius: 10px !important;
             font-weight: 600 !important;
+            transition: background 0.15s ease, border-color 0.15s ease;
         }}
         div[data-testid="stButton"] button *,
         div[data-testid="stDownloadButton"] button *,
@@ -214,8 +241,8 @@ def inject_global_css():
         button[kind="secondary"]:hover,
         button[data-testid="stBaseButton-secondary"]:hover,
         button[data-testid="stBaseButton-secondaryFormSubmit"]:hover {{
-            background-color: {LIGHT_BG} !important;
-            border-color: {BLUE} !important;
+            background-color: #232E45 !important;
+            border-color: {PRIMARY} !important;
         }}
         div[data-testid="stButton"] button[kind="primary"],
         div[data-testid="stDownloadButton"] button[kind="primary"],
@@ -223,9 +250,19 @@ def inject_global_css():
         button[kind="primary"],
         button[data-testid="stBaseButton-primary"],
         button[data-testid="stBaseButton-primaryFormSubmit"] {{
-            background-color: {BLUE} !important;
-            border: 1.5px solid {BLUE} !important;
+            background-color: {PRIMARY} !important;
+            border: 1px solid {PRIMARY} !important;
             color: #FFFFFF !important;
+            box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+        }}
+        div[data-testid="stButton"] button[kind="primary"]:hover,
+        div[data-testid="stDownloadButton"] button[kind="primary"]:hover,
+        div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover,
+        button[kind="primary"]:hover,
+        button[data-testid="stBaseButton-primary"]:hover,
+        button[data-testid="stBaseButton-primaryFormSubmit"]:hover {{
+            background-color: {PRIMARY_HOVER} !important;
+            border-color: {PRIMARY_HOVER} !important;
         }}
         div[data-testid="stButton"] button[kind="primary"] *,
         div[data-testid="stDownloadButton"] button[kind="primary"] *,
@@ -236,22 +273,20 @@ def inject_global_css():
             color: #FFFFFF !important;
         }}
         button:disabled, button:disabled * {{
-            background-color: #EDEFF3 !important;
-            color: #A6AEBB !important;
-            border-color: #D8DEE8 !important;
+            background-color: {SURFACE} !important;
+            color: {TEXT_FAINT} !important;
+            border-color: {BORDER} !important;
+            box-shadow: none !important;
         }}
 
-        /* Placeholder text (e.g. "Press Enter to submit form") */
         input::placeholder, textarea::placeholder {{
-            color: {TEXT_MUTED} !important;
+            color: {TEXT_FAINT} !important;
             opacity: 1 !important;
         }}
 
-        /* Generic "card" look for bordered containers, e.g.
-           st.container(border=True) on the login screen. */
-        div[data-testid="stVerticalBlockBorderWrapper"]:has(> div > div[data-testid="stVerticalBlock"]) {{
-            border-radius: 14px !important;
-        }}
+        /* -----------------------------------------------------------
+           Bordered containers (login card, etc.)
+        ----------------------------------------------------------- */
         [data-testid="stForm"] {{
             border: none !important;
             padding: 0 !important;
@@ -259,19 +294,23 @@ def inject_global_css():
         }}
         .login-card,
         div[data-testid="stVerticalBlockBorderWrapper"] {{
-            background: white;
-            border-radius: 14px !important;
-            box-shadow: 0 4px 24px rgba(31,56,100,0.08);
+            background: {SURFACE};
+            border-radius: 16px !important;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
             border: 1px solid {BORDER} !important;
         }}
 
+        /* -----------------------------------------------------------
+           Hero banner
+        ----------------------------------------------------------- */
         .hero-banner {{
-            background: linear-gradient(135deg, {NAVY} 0%, {BLUE} 100%);
-            color: white;
+            background: linear-gradient(135deg, #1E2A47 0%, #312E81 100%);
+            color: {TEXT_PRIMARY};
             padding: 30px 34px;
-            border-radius: 16px;
+            border-radius: 18px;
             margin-bottom: 26px;
-            box-shadow: 0 8px 28px rgba(31,56,100,0.18);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.35);
+            border: 1px solid {BORDER};
             position: relative;
             overflow: hidden;
         }}
@@ -279,39 +318,37 @@ def inject_global_css():
             content: "";
             position: absolute;
             top: -60%; right: -8%;
-            width: 260px; height: 260px;
+            width: 280px; height: 280px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.06);
+            background: radial-gradient(circle, rgba(99,102,241,0.35) 0%, rgba(99,102,241,0) 70%);
         }}
         .hero-banner h1 {{
-            color: white !important;
+            color: {TEXT_PRIMARY} !important;
             font-size: 1.65rem;
             margin: 0 0 6px 0;
             font-weight: 800;
             position: relative;
         }}
         .hero-banner p {{
-            color: white !important;
+            color: {TEXT_MUTED} !important;
             margin: 0;
-            opacity: 0.9;
             font-size: 0.98rem;
             position: relative;
         }}
+        .hero-banner p b {{ color: {TEXT_PRIMARY} !important; }}
 
         /* ---------------------------------------------------------------
-           Cards (Quick Navigation tiles, KPI stat cards). Flex column so
-           the description can grow to fill leftover space, which keeps
-           every card in a row the same footprint regardless of how much
-           text it holds — combined with the equal-height row rules above.
+           Cards (Quick Navigation tiles, KPI stat cards) — uniform grid:
+           same border-radius, padding and height across every card, flex
+           column so descriptions grow to fill leftover space evenly.
         --------------------------------------------------------------- */
         .kpi-card {{
-            background: white;
+            background: {SURFACE};
             border-radius: 14px;
-            padding: 20px 18px;
+            padding: 20px 20px;
             border: 1px solid {BORDER};
-            border-top: 3px solid var(--kpi-color, {BLUE});
-            box-shadow: 0 2px 10px rgba(31,56,100,0.05);
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
             display: flex;
             flex-direction: column;
             width: 100%;
@@ -319,7 +356,8 @@ def inject_global_css():
         }}
         .kpi-card:hover {{
             transform: translateY(-3px);
-            box-shadow: 0 10px 24px rgba(31,56,100,0.12);
+            border-color: color-mix(in srgb, var(--kpi-color, {PRIMARY}) 45%, {BORDER});
+            box-shadow: 0 14px 34px rgba(0,0,0,0.32);
         }}
         .kpi-icon {{
             width: 42px;
@@ -328,50 +366,64 @@ def inject_global_css():
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
-            background: color-mix(in srgb, var(--kpi-color, {BLUE}) 14%, white);
-            margin-bottom: 12px;
+            font-size: 1.25rem;
+            background: color-mix(in srgb, var(--kpi-color, {PRIMARY}) 18%, {SURFACE});
+            margin-bottom: 14px;
             flex-shrink: 0;
         }}
         .kpi-title {{
             font-weight: 700;
-            color: {TEXT_DARK};
+            color: {TEXT_PRIMARY};
             font-size: 1.02rem;
             margin-bottom: 4px;
         }}
         .kpi-value {{
             font-weight: 700;
-            color: {TEXT_DARK};
-            font-size: 1.4rem;
+            color: {TEXT_PRIMARY};
+            font-size: 1.5rem;
+            letter-spacing: -0.02em;
         }}
         .kpi-desc {{
             color: {TEXT_MUTED};
             font-size: 0.85rem;
-            line-height: 1.45;
+            line-height: 1.5;
             flex-grow: 1;
         }}
 
         .section-title {{
-            font-weight: 800;
-            color: {NAVY} !important;
-            font-size: 1.15rem;
-            margin: 22px 0 12px 0;
-            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            color: {TEXT_PRIMARY} !important;
+            font-size: 1.05rem;
+            margin: 24px 0 14px 0;
+            padding-bottom: 10px;
             border-bottom: 1px solid {BORDER};
         }}
 
+        /* Low-opacity status "mini badge" with a small dot indicator,
+           instead of a bulky solid-color pill. */
         .status-badge {{
-            display: inline-block;
-            padding: 3px 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 11px 4px 8px;
             border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            color: white !important;
+            font-size: 0.74rem;
+            font-weight: 600;
+            background: color-mix(in srgb, var(--status-color, {TEXT_FAINT}) 16%, transparent);
+            border: 1px solid color-mix(in srgb, var(--status-color, {TEXT_FAINT}) 38%, transparent);
+            color: var(--status-color, {TEXT_MUTED}) !important;
+        }}
+        .status-dot {{
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--status-color, {TEXT_FAINT});
+            flex-shrink: 0;
         }}
 
-        /* Reusable muted-text helper for anything rendered via
-           st.markdown(..., unsafe_allow_html=True) instead of
-           st.caption() — used by task descriptions, notes, etc. */
         .muted-text {{
             color: {TEXT_MUTED} !important;
             font-size: 0.85rem;
@@ -380,15 +432,14 @@ def inject_global_css():
 
         /* -----------------------------------------------------------
            Sidebar: brand header + built-in multipage navigation +
-           user/logout footer, restyled to look like one cohesive
-           product nav rather than default Streamlit chrome.
+           user/logout footer, restyled as one cohesive product nav.
         ----------------------------------------------------------- */
         section[data-testid="stSidebar"] {{
-            background: linear-gradient(180deg, {NAVY} 0%, {NAVY_DARK} 100%);
-            border-right: none;
+            background: {BG};
+            border-right: 1px solid {BORDER};
         }}
         section[data-testid="stSidebar"] * {{
-            color: #EAF0FA !important;
+            color: {TEXT_PRIMARY} !important;
         }}
         section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {{
             padding-top: 4px;
@@ -401,36 +452,52 @@ def inject_global_css():
             padding: 0 !important;
         }}
         [data-testid="stSidebarNav"] li {{
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }}
         [data-testid="stSidebarNav"] a {{
-            border-radius: 9px !important;
+            border-radius: 8px !important;
             padding: 10px 14px !important;
             font-weight: 500 !important;
             font-size: 0.92rem !important;
-            transition: background 0.15s ease;
+            color: {TEXT_MUTED} !important;
+            border-left: 2px solid transparent;
+            transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
         }}
         [data-testid="stSidebarNav"] a:hover {{
-            background: rgba(255,255,255,0.08) !important;
+            background: rgba(255,255,255,0.05) !important;
+            color: {TEXT_PRIMARY} !important;
         }}
         [data-testid="stSidebarNav"] a[aria-current="page"] {{
-            background: rgba(255,255,255,0.14) !important;
+            background: rgba(99,102,241,0.14) !important;
+            color: {TEXT_PRIMARY} !important;
             font-weight: 700 !important;
-            box-shadow: inset 3px 0 0 #6FA8DC;
+            border-left: 2px solid {PRIMARY};
         }}
 
         .sidebar-brand {{
-            text-align: center;
-            padding: 14px 10px 16px 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 12px 16px 12px;
+            border-bottom: 1px solid {BORDER};
             margin-bottom: 8px;
         }}
-        .sidebar-brand .brand-icon {{ font-size: 1.9rem; }}
+        .sidebar-brand .brand-icon {{
+            font-size: 1.5rem;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(99,102,241,0.16);
+            flex-shrink: 0;
+        }}
         .sidebar-brand .brand-name {{
             font-weight: 800;
-            font-size: 0.98rem;
+            font-size: 0.92rem;
             line-height: 1.3;
-            margin-top: 2px;
+            color: {TEXT_PRIMARY};
         }}
 
         .sidebar-user {{
@@ -439,42 +506,52 @@ def inject_global_css():
             gap: 10px;
             padding: 12px 6px;
             margin-top: 10px;
-            border-top: 1px solid rgba(255,255,255,0.12);
+            border-top: 1px solid {BORDER};
         }}
         .sidebar-user .avatar {{
             width: 34px;
             height: 34px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.14);
+            background: linear-gradient(135deg, {PRIMARY} 0%, #38BDF8 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
+            color: #FFFFFF !important;
             flex-shrink: 0;
         }}
         .sidebar-user .who {{ line-height: 1.3; overflow: hidden; }}
         .sidebar-user .who .name {{
             font-weight: 700;
             font-size: 0.85rem;
+            color: {TEXT_PRIMARY};
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }}
         .sidebar-user .who .role {{
             font-size: 0.72rem;
-            opacity: 0.75;
+            color: {TEXT_MUTED};
         }}
         section[data-testid="stSidebar"] div[data-testid="stButton"] button {{
-            background: rgba(255,255,255,0.06) !important;
-            border: 1px solid rgba(255,255,255,0.18) !important;
-            color: #EAF0FA !important;
+            background: transparent !important;
+            border: 1px solid {BORDER_STRONG} !important;
+            color: {TEXT_MUTED} !important;
             font-size: 0.82rem !important;
             padding: 4px 0 !important;
         }}
         section[data-testid="stSidebar"] div[data-testid="stButton"] button:hover {{
-            background: rgba(255,255,255,0.14) !important;
-            border-color: rgba(255,255,255,0.32) !important;
+            background: rgba(244,63,94,0.1) !important;
+            border-color: {ROSE} !important;
+            color: {TEXT_PRIMARY} !important;
+        }}
+
+        /* Streamlit's default dataframe/table also gets a dark pass so it
+           doesn't sit as a bright white block inside the dark canvas. */
+        [data-testid="stDataFrame"] {{
+            border: 1px solid {BORDER} !important;
+            border-radius: 10px !important;
         }}
         </style>
         """,
@@ -544,8 +621,11 @@ def _render_sidebar_user_footer():
 
 
 def status_badge(status: str) -> str:
-    color = STATUS_COLORS.get(status, "#8A93A3")
-    return f'<span class="status-badge" style="background:{color};">{status}</span>'
+    color = STATUS_COLORS.get(status, TEXT_FAINT)
+    return (
+        f'<span class="status-badge" style="--status-color:{color};">'
+        f'<span class="status-dot"></span>{status}</span>'
+    )
 
 
 def muted_text(text: str) -> str:
@@ -555,7 +635,7 @@ def muted_text(text: str) -> str:
     return f'<div class="muted-text">{text}</div>'
 
 
-def kpi_card(icon: str, label: str, value, color: str = BLUE):
+def kpi_card(icon: str, label: str, value, color: str = PRIMARY):
     st.markdown(
         f"""
         <div class="kpi-card" style="--kpi-color:{color};">
