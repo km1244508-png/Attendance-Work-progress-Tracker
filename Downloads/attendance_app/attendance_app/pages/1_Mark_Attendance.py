@@ -98,44 +98,50 @@ with c2:
         st.success(f"Checked out at {record.check_out.strftime('%H:%M')}")
         st.rerun()
 
-if is_admin():
-    st.markdown("---")
-    section_title("Manual Correction (Admin)", "🛠️")
-    with st.form("manual_correction"):
-        # FIX: st.time_input(..., value=None) does NOT mean "empty" — Streamlit
-        # silently defaults it to the current clock time. So even when an
-        # admin left check-out untouched, it was quietly being saved as
-        # "right now", which produced a near-zero (or otherwise wrong)
-        # hours_worked and could push the status to "Half-Day" for an
-        # employee who never actually checked out. An explicit checkbox now
-        # controls whether a field is empty, instead of relying on the
-        # widget's default.
-        mc1, mc2 = st.columns(2)
-        with mc1:
-            no_check_in = st.checkbox("No check-in recorded", value=not (record and record.check_in))
-            in_time = st.time_input(
-                "Check-in time",
-                value=record.check_in.time() if record and record.check_in else dtime(9, 0),
-                disabled=no_check_in,
-            )
-        with mc2:
-            no_check_out = st.checkbox("No check-out recorded", value=not (record and record.check_out))
-            out_time = st.time_input(
-                "Check-out time",
-                value=record.check_out.time() if record and record.check_out else dtime(17, 0),
-                disabled=no_check_out,
-            )
-        notes = st.text_area("Notes (optional)", value=record.notes if record else "")
-        if st.form_submit_button("Save Correction"):
-            if not record:
-                record = Attendance(employee_id=employee.id, date=target_date)
-                session.add(record)
-            record.check_in = None if no_check_in else datetime.combine(target_date, in_time)
-            record.check_out = None if no_check_out else datetime.combine(target_date, out_time)
-            record.notes = notes
-            result = evaluate_attendance(record.check_in, record.check_out, employee)
-            for k, v in result.items():
-                setattr(record, k, v)
-            session.commit()
-            st.success("Attendance record updated.")
-            st.rerun()
+st.markdown("---")
+section_title("Manual Time Entry", "🛠️")
+st.markdown(
+    "Prefer to type the exact time instead of using the buttons above? "
+    "Set it here." if not is_admin() else
+    "Set or correct check-in / check-out times directly (for the selected employee above)."
+)
+with st.form("manual_correction"):
+    # FIX: st.time_input(..., value=None) does NOT mean "empty" — Streamlit
+    # silently defaults it to the current clock time. So even when someone
+    # left check-out untouched, it was quietly being saved as "right now",
+    # which produced a near-zero (or otherwise wrong) hours_worked and
+    # could push the status to "Half-Day" for an employee who never
+    # actually checked out. An explicit checkbox now controls whether a
+    # field is empty, instead of relying on the widget's default.
+    mc1, mc2 = st.columns(2)
+    with mc1:
+        no_check_in = st.checkbox("No check-in recorded", value=not (record and record.check_in))
+        in_time = st.time_input(
+            "Check-in time",
+            value=record.check_in.time() if record and record.check_in else dtime(9, 0),
+            disabled=no_check_in,
+        )
+    with mc2:
+        no_check_out = st.checkbox("No check-out recorded", value=not (record and record.check_out))
+        out_time = st.time_input(
+            "Check-out time",
+            value=record.check_out.time() if record and record.check_out else dtime(17, 0),
+            disabled=no_check_out,
+        )
+    notes = st.text_area("Notes (optional)", value=record.notes if record else "")
+    if st.form_submit_button("Save", type="primary"):
+        if not record:
+            record = Attendance(employee_id=employee.id, date=target_date)
+            session.add(record)
+        record.check_in = None if no_check_in else datetime.combine(target_date, in_time)
+        record.check_out = None if no_check_out else datetime.combine(target_date, out_time)
+        if record.check_in and record.check_out and record.check_out < record.check_in:
+            st.error("Check-out time can't be earlier than check-in time.")
+            st.stop()
+        record.notes = notes
+        result = evaluate_attendance(record.check_in, record.check_out, employee)
+        for k, v in result.items():
+            setattr(record, k, v)
+        session.commit()
+        st.success("Attendance record updated.")
+        st.rerun()
