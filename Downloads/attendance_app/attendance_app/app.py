@@ -10,7 +10,10 @@ import config
 from database.db_setup import init_db, default_admin_notice, default_admin_still_active
 from utils.auth import login, logout, is_logged_in, is_admin, create_user_and_employee
 from utils.cookies import block_until_ready
-from utils.ui import inject_global_css, hero, section_title, render_sidebar_brand, ACCENT_PALETTE
+from utils.ui import (
+    inject_global_css, hero, section_title, render_sidebar_brand,
+    ACCENT_PALETTE, TEXT_PRIMARY, TEXT_MUTED,
+)
 
 st.set_page_config(
     page_title=config.APP_NAME,
@@ -37,10 +40,10 @@ def render_login():
             f"""
             <div style="text-align:center;margin-bottom:18px;">
                 <div style="font-size:2.6rem;">{config.APP_ICON}</div>
-                <div style="font-size:1.5rem;font-weight:800;color:#1F3864;margin-top:4px;">
+                <div style="font-size:1.5rem;font-weight:800;color:{TEXT_PRIMARY};margin-top:4px;">
                     {config.APP_NAME}
                 </div>
-                <div style="color:#66707F;font-size:0.95rem;margin-top:4px;">
+                <div style="color:{TEXT_MUTED};font-size:0.95rem;margin-top:4px;">
                     Sign in to your workspace
                 </div>
             </div>
