@@ -1,170 +1,130 @@
 """
-utils/ui.py
------------
-Shared design system: global CSS, KPI cards, hero banners, section
-titles, sidebar branding, and status badges. Keep all color/style
-constants here so branding can be changed from one place.
+pages/3_Dashboard.py
+----------------------
+Real-time attendance and work-progress overview. Admins see a
+company-wide snapshot for today; employees see their own status.
 """
+
+from datetime import date
 
 import streamlit as st
 
-NAVY = "#1F3864"
-BLUE = "#2E74B5"
-LIGHT_BG = "#F5F7FA"
-TEXT_MUTED = "#66707F"
-TEXT_DARK = "#1A1F2B"
+import config
+from database.db_setup import get_session
+from database.models import Employee, Attendance, Task
+from utils.auth import require_login, is_admin, current_employee_id
+from utils.calculations import compute_live_elapsed_hours, task_progress_summary
+from utils.ui import (
+    inject_global_css, render_sidebar_brand, hero, section_title,
+    kpi_card, status_badge, muted_text,
+)
 
-STATUS_COLORS = {
-    "Present": "#1E8E5A",
-    "Late": "#C77700",
-    "Half-Day": "#B8860B",
-    "Absent": "#C0392B",
-    "Not Started": "#8A93A3",
-    "In Progress": "#2E74B5",
-    "Completed": "#1E8E5A",
-    "On Hold": "#C77700",
-}
+st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
+inject_global_css()
+require_login()
+render_sidebar_brand(config.APP_NAME, config.APP_ICON)
+hero("Dashboard", "Real-time attendance and work-progress overview.", icon="📊")
 
+session = get_session()
+today = date.today()
 
-def inject_global_css():
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{ background-color: {LIGHT_BG}; }}
-        #MainMenu, footer {{ visibility: hidden; }}
+if is_admin():
+    employees = session.query(Employee).filter_by(is_active=True).order_by(Employee.full_name).all()
+    today_records = {
+        r.employee_id: r
+        for r in session.query(Attendance).filter_by(date=today).all()
+    }
+    tasks = session.query(Task).all()
 
-        /* Main area text color fix */
-        .stApp, .stMarkdown, p, span, label {{
-            color: {TEXT_DARK} !important;
-        }}
-
-        /* Tab buttons and titles visible fix */
-        button[data-baseweb="tab"] {{
-            color: {TEXT_MUTED} !important;
-        }}
-        button[data-baseweb="tab"] p {{
-            color: {TEXT_MUTED} !important;
-            font-size: 15px !important;
-            font-weight: 600 !important;
-        }}
-        button[data-baseweb="tab"][aria-selected="true"] p {{
-            color: {NAVY} !important;
-            font-weight: 800 !important;
-        }}
-
-        .login-card {{
-            background: white;
-            padding: 28px 32px;
-            border-radius: 14px;
-            box-shadow: 0 4px 24px rgba(31,56,100,0.08);
-            border: 1px solid #E7EBF1;
-        }}
-
-        .hero-banner {{
-            background: linear-gradient(135deg, {NAVY} 0%, {BLUE} 100%);
-            color: white;
-            padding: 28px 32px;
-            border-radius: 14px;
-            margin-bottom: 22px;
-        }}
-        .hero-banner h1 {{
-            color: white !important;
-            font-size: 1.6rem;
-            margin: 0 0 6px 0;
-            font-weight: 800;
-        }}
-        .hero-banner p {{
-            color: white !important;
-            margin: 0;
-            opacity: 0.92;
-            font-size: 0.98rem;
-        }}
-
-        .kpi-card {{
-            background: white;
-            border-radius: 12px;
-            padding: 18px 16px;
-            border: 1px solid #E7EBF1;
-            border-top: 3px solid var(--kpi-color, {BLUE});
-            box-shadow: 0 2px 10px rgba(31,56,100,0.05);
-            transition: transform 0.15s ease;
-        }}
-        .kpi-card:hover {{ transform: translateY(-2px); }}
-        .kpi-icon {{ font-size: 1.6rem; margin-bottom: 6px; }}
-
-        .section-title {{
-            font-weight: 800;
-            color: {NAVY} !important;
-            font-size: 1.15rem;
-            margin: 18px 0 10px 0;
-        }}
-
-        .status-badge {{
-            display: inline-block;
-            padding: 3px 12px;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            color: white !important;
-        }}
-
-        section[data-testid="stSidebar"] {{
-            background-color: {NAVY};
-        }}
-        section[data-testid="stSidebar"] * {{ 
-            color: #EAF0FA !important; 
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True,
+    present = sum(1 for r in today_records.values() if r.status in ("Present", "Late"))
+    late = sum(1 for r in today_records.values() if r.status == "Late")
+    absent = len(employees) - len(today_records)
+    total_hours = sum(
+        (compute_live_elapsed_hours(r.check_in, r.check_out) if r.check_in else 0.0)
+        for r in today_records.values()
     )
+    avg_hours = round(total_hours / len(today_records), 2) if today_records else 0.0
+    progress = task_progress_summary(tasks)
 
+    section_title("Today's Snapshot", "📅")
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    with c1:
+        kpi_card("👥", "Total Employees", len(employees))
+    with c2:
+        kpi_card("✅", "Present Today", present, color="#1E8E5A")
+    with c3:
+        kpi_card("⏰", "Late Today", late, color="#C77700")
+    with c4:
+        kpi_card("🚫", "Absent Today", max(absent, 0), color="#C0392B")
+    with c5:
+        kpi_card("⏱️", "Avg Hours Today", f"{avg_hours:.2f}")
+    with c6:
+        kpi_card("📋", "Task Completion", f"{progress['completion_pct']}%")
 
-def hero(title: str, subtitle_html: str, icon: str = "🕒"):
-    st.markdown(
-        f"""
-        <div class="hero-banner">
-            <h1>{icon} {title}</h1>
-            <p>{subtitle_html}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    section_title("Employee Status — Today", "🧑‍💼")
+    if not employees:
+        st.info("No active employees yet.")
+    else:
+        for emp in employees:
+            rec = today_records.get(emp.id)
+            with st.container(border=True):
+                c1, c2, c3, c4 = st.columns([2.5, 1.3, 1.3, 1.3])
+                with c1:
+                    st.markdown(f"**{emp.full_name}**")
+                    st.markdown(muted_text(emp.department or "—"), unsafe_allow_html=True)
+                with c2:
+                    st.markdown(status_badge(rec.status) if rec else status_badge("Absent"), unsafe_allow_html=True)
+                with c3:
+                    st.markdown(muted_text(f"In: {rec.check_in.strftime('%H:%M') if rec and rec.check_in else '—'}"), unsafe_allow_html=True)
+                with c4:
+                    if rec and rec.check_in and not rec.check_out:
+                        live = compute_live_elapsed_hours(rec.check_in, rec.check_out)
+                        st.markdown(muted_text(f"{live:.2f} hrs (live)"), unsafe_allow_html=True)
+                    else:
+                        hrs = rec.hours_worked if rec else 0.0
+                        st.markdown(muted_text(f"{hrs:.2f} hrs"), unsafe_allow_html=True)
 
+    section_title("Work Progress Overview", "📋")
+    p1, p2, p3, p4, p5 = st.columns(5)
+    p1.metric("Total Tasks", progress["total"])
+    p2.metric("Completed", progress["completed"])
+    p3.metric("In Progress", progress["in_progress"])
+    p4.metric("Not Started", progress["not_started"])
+    p5.metric("Overdue", progress["overdue"])
 
-def section_title(text: str, icon: str = ""):
-    st.markdown(
-        f'<div class="section-title">{icon} {text}</div>',
-        unsafe_allow_html=True,
-    )
+else:
+    employee = session.query(Employee).get(current_employee_id())
+    if not employee:
+        st.error("No employee profile linked to this account.")
+        st.stop()
 
+    record = session.query(Attendance).filter_by(employee_id=employee.id, date=today).first()
+    my_tasks = session.query(Task).filter_by(employee_id=employee.id).all()
+    progress = task_progress_summary(my_tasks)
 
-def render_sidebar_brand(app_name: str, app_icon: str):
-    with st.sidebar:
-        st.markdown(
-            f"""
-            <div style="text-align:center;padding:10px 0 18px 0;">
-                <div style="font-size:2rem;">{app_icon}</div>
-                <div style="font-weight:800;font-size:1.0rem;line-height:1.3;">{app_name}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    if record and record.check_in and not record.check_out:
+        live_hours = compute_live_elapsed_hours(record.check_in, record.check_out)
+        hours_display = f"{live_hours:.2f} (live)"
+    else:
+        hours_display = f"{record.hours_worked:.2f}" if record else "0.00"
 
+    section_title(f"Welcome back, {employee.full_name}", "👋")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        kpi_card("📌", "Today's Status", record.status if record else "Absent")
+    with c2:
+        kpi_card("⏱️", "Hours Today", hours_display)
+    with c3:
+        kpi_card("📋", "My Task Completion", f"{progress['completion_pct']}%")
+    with c4:
+        kpi_card("⚠️", "Overdue Tasks", progress["overdue"], color="#C0392B" if progress["overdue"] else "#1E8E5A")
 
-def status_badge(status: str) -> str:
-    color = STATUS_COLORS.get(status, "#8A93A3")
-    return f'<span class="status-badge" style="background:{color};">{status}</span>'
+    if record:
+        st.markdown(status_badge(record.status), unsafe_allow_html=True)
 
-
-def kpi_card(icon: str, label: str, value, color: str = BLUE):
-    st.markdown(
-        f"""
-        <div class="kpi-card" style="--kpi-color:{color};">
-            <div class="kpi-icon">{icon}</div>
-            <div style="font-weight:700;color:{TEXT_DARK};font-size:1.4rem;">{value}</div>
-            <div style="color:{TEXT_MUTED};font-size:0.85rem;">{label}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    section_title("My Tasks Summary", "📋")
+    t1, t2, t3, t4 = st.columns(4)
+    t1.metric("Total", progress["total"])
+    t2.metric("Completed", progress["completed"])
+    t3.metric("In Progress", progress["in_progress"])
+    t4.metric("Not Started", progress["not_started"])
