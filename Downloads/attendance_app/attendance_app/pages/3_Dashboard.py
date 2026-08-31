@@ -68,7 +68,7 @@ if is_admin():
         for emp in employees:
             rec = today_records.get(emp.id)
             with st.container(border=True):
-                c1, c2, c3, c4 = st.columns([2.5, 1.3, 1.3, 1.3])
+                c1, c2, c3, c4, c5 = st.columns([2.3, 1.1, 1.1, 1.1, 1.3])
                 with c1:
                     st.markdown(f"**{emp.full_name}**")
                     st.markdown(muted_text(emp.department or "—"), unsafe_allow_html=True)
@@ -77,6 +77,8 @@ if is_admin():
                 with c3:
                     st.markdown(muted_text(f"In: {rec.check_in.strftime('%H:%M') if rec and rec.check_in else '—'}"), unsafe_allow_html=True)
                 with c4:
+                    st.markdown(muted_text(f"Out: {rec.check_out.strftime('%H:%M') if rec and rec.check_out else '—'}"), unsafe_allow_html=True)
+                with c5:
                     if rec and rec.check_in and not rec.check_out:
                         live = compute_live_elapsed_hours(rec.check_in, rec.check_out)
                         st.markdown(muted_text(f"{live:.2f} hrs (live)"), unsafe_allow_html=True)
