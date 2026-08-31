@@ -10,7 +10,7 @@ import config
 from database.db_setup import init_db, default_admin_notice, default_admin_still_active
 from utils.auth import login, logout, is_logged_in, is_admin, create_user_and_employee
 from utils.cookies import block_until_ready
-from utils.ui import inject_global_css, hero, section_title, render_sidebar_brand
+from utils.ui import inject_global_css, hero, section_title, render_sidebar_brand, ACCENT_PALETTE
 
 st.set_page_config(
     page_title=config.APP_NAME,
@@ -134,14 +134,14 @@ def render_landing():
 
     section_title("Quick Navigation", "🧭")
     cols = st.columns(len(cards))
-    for c, (icon, label, desc) in zip(cols, cards):
+    for c, (icon, label, desc), color in zip(cols, cards, ACCENT_PALETTE):
         with c:
             st.markdown(
                 f"""
-                <div class="kpi-card" style="--kpi-color:#2E74B5; min-height:150px;">
+                <div class="kpi-card" style="--kpi-color:{color};">
                     <div class="kpi-icon">{icon}</div>
-                    <div style="font-weight:700;color:#1A1F2B;font-size:1.02rem;margin-bottom:4px;">{label}</div>
-                    <div style="color:#66707F;font-size:0.85rem;line-height:1.4;">{desc}</div>
+                    <div class="kpi-title">{label}</div>
+                    <div class="kpi-desc">{desc}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
