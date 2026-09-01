@@ -361,12 +361,19 @@ def inject_global_css():
         }}
         div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {{
             display: flex;
+                div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {{
+            display: flex;
+            height: auto;
         }}
-        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > div {{
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > div,
+        div[data-testid="stHorizontalBlock"] div[data-testid="stVerticalBlock"],
+        div[data-testid="stHorizontalBlock"] div[data-testid="stVerticalBlockBorderWrapper"],
+        div[data-testid="stHorizontalBlock"] div[data-testid="element-container"],
+        div[data-testid="stHorizontalBlock"] div[data-testid="stMarkdown"],
+        div[data-testid="stHorizontalBlock"] div[data-testid="stMarkdownContainer"] {{
             width: 100%;
+            height: 100%;
         }}
-        .kpi-card:hover {{
-            transform: translateY(-3px);
             border-color: color-mix(in srgb, var(--kpi-color, {PRIMARY}) 45%, {BORDER});
             box-shadow: 0 14px 34px rgba(0,0,0,0.32);
         }}
