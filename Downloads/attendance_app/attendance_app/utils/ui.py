@@ -342,7 +342,7 @@ def inject_global_css():
            same border-radius, padding and height across every card, flex
            column so descriptions grow to fill leftover space evenly.
         --------------------------------------------------------------- */
-                .kpi-card {{
+                  .kpi-card {{
             background: {SURFACE};
             border-radius: 14px;
             padding: 20px 20px;
@@ -361,12 +361,17 @@ def inject_global_css():
         }}
         div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {{
             display: flex;
-                div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {{
-            display: flex;
             height: auto;
         }}
         div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > div,
         div[data-testid="stHorizontalBlock"] div[data-testid="stVerticalBlock"],
+        div[data-testid="stHorizontalBlock"] div[data-testid="stVerticalBlockBorderWrapper"],
+        div[data-testid="stHorizontalBlock"] div[data-testid="element-container"],
+        div[data-testid="stHorizontalBlock"] div[data-testid="stMarkdown"],
+        div[data-testid="stHorizontalBlock"] div[data-testid="stMarkdownContainer"] {{
+            width: 100%;
+            height: 100%;
+        }}
         div[data-testid="stHorizontalBlock"] div[data-testid="stVerticalBlockBorderWrapper"],
         div[data-testid="stHorizontalBlock"] div[data-testid="element-container"],
         div[data-testid="stHorizontalBlock"] div[data-testid="stMarkdown"],
