@@ -50,7 +50,7 @@ def render_login():
             """,
             unsafe_allow_html=True,
         )
-
+        
         # NOTE: previously a standalone st.markdown('<div class="login-card">')
         # was opened here and closed after the form — but that div never
         # actually wraps the form (Streamlit renders the form as a separate

@@ -14,7 +14,7 @@ import config
 from database.db_setup import get_session
 from database.models import Employee, Task
 from utils.auth import require_login, is_admin, current_employee_id
-from utils.ui import inject_global_css, render_sidebar_brand, hero, section_title, status_badge, muted_text
+from utils.ui import inject_global_css, render_sidebar_brand, hero, section_title, status_badge
 
 st.set_page_config(page_title="Work Progress", page_icon="📋", layout="wide")
 inject_global_css()
@@ -43,13 +43,11 @@ def render_task_list(tasks, show_employee_name: bool):
                     title_line += f"  ·  _{task.employee.full_name}_"
                 st.markdown(title_line)
                 if task.description:
-                    st.markdown(muted_text(task.description), unsafe_allow_html=True)
-                else:
-                    st.markdown(muted_text("<i>No description added.</i>"), unsafe_allow_html=True)
+                    st.caption(task.description)
                 due_txt = f"Due: {task.due_date}" if task.due_date else "No due date"
                 if overdue:
                     due_txt += "  ⚠️ OVERDUE"
-                st.markdown(muted_text(due_txt), unsafe_allow_html=True)
+                st.caption(due_txt)
             with c2:
                 st.markdown(status_badge(task.status), unsafe_allow_html=True)
                 st.progress(task.progress_pct / 100 if task.progress_pct else 0)
