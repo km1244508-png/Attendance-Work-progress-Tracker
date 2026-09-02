@@ -27,7 +27,9 @@ COMPANY_NAME = os.environ.get("COMPANY_NAME", "Your Company")
 # Local/dev default: SQLite file in the project folder.
 # Production: set DATABASE_URL env var to a PostgreSQL connection string
 # (e.g. Supabase / Neon). No code changes needed anywhere else.
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///attendance.db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///attendance.db").strip()
+if not DATABASE_URL:
+    DATABASE_URL = "sqlite:///attendance.db"
 
 # ---------------------------------------------------------------------------
 # Attendance business rules
