@@ -27,9 +27,9 @@ COMPANY_NAME = os.environ.get("COMPANY_NAME", "Your Company")
 # Local/dev default: SQLite file in the project folder.
 # Production: set DATABASE_URL env var to a PostgreSQL connection string
 # (e.g. Supabase / Neon). No code changes needed anywhere else.
-_db_url = os.environ.get("DATABASE_URL", "").strip()
-# Handle empty string, None, or whitespace-only values
-if not _db_url or _db_url.lower() in ["", "none", "null"]:
+_db_url = os.environ.get("DATABASE_URL", "").strip() if os.environ.get("DATABASE_URL") else ""
+# Handle empty string, None, or whitespace-only values - default to SQLite
+if not _db_url or len(_db_url) == 0 or _db_url.lower() in ["none", "null", "empty", ""]:
     DATABASE_URL = "sqlite:///attendance.db"
 else:
     DATABASE_URL = _db_url

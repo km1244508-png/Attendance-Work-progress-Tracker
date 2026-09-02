@@ -16,12 +16,24 @@ from database.models import Base, User, Employee
 DEFAULT_ADMIN_USERNAME = "admin"
 DEFAULT_ADMIN_PASSWORD = "admin123"
 
+# Validate DATABASE_URL - use SQLite as ultimate fallback
+_database_url = config.DATABASE_URL
+if not _database_url or not isinstance(_database_url, str) or _database_url.isspace():
+    _database_url = "sqlite:///attendance.db"
+
+# Try to validate URL format - if it fails, use SQLite
+try:
+    from sqlalchemy.engine.url import make_url
+    make_url(_database_url)  # Test if URL is valid
+except Exception:
+    _database_url = "sqlite:///attendance.db"
+
 _connect_args = {}
-if config.DATABASE_URL.startswith("sqlite"):
+if _database_url.startswith("sqlite"):
     # allow use across Streamlit's script-rerun threads
     _connect_args = {"check_same_thread": False}
 
-engine = create_engine(config.DATABASE_URL, connect_args=_connect_args, pool_pre_ping=True)
+engine = create_engine(_database_url, connect_args=_connect_args, pool_pre_ping=True)
 SessionLocal = scoped_session(sessionmaker(bind=engine, autoflush=False, autocommit=False))
 
 
