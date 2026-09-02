@@ -21,6 +21,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# Show loading indicator immediately
+st.markdown("⏳ Initializing app...")
+
 inject_global_css()
 
 # The cookie component responds asynchronously — it isn't ready on the
