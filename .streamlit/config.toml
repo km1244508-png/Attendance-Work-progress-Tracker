@@ -19,4 +19,4 @@ enableCORS = true
 
 [browser]
 gatherUsageStats = false
-serverAddress = "localhost"
+# serverAddress will be set by Streamlit Cloud automatically
